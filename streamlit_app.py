@@ -71,5 +71,7 @@ if st.button('Predict'):
     st.write(label_map[pred])
 
     st.subheader("Prediction Probabilities")
-    st.write({label_map[i]: float(round(p, 4)) for i, p in enumerate(proba)})
-
+    st.write({
+        label_map[i]: float(round(p, 4))
+        for i, p in enumerate(proba)
+    })
