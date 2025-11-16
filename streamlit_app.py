@@ -20,12 +20,9 @@ st.set_page_config(
 # -------------------------------------------------------------
 st.markdown("""
     <style>
-        body {
-            background-color: #F1F3F6;
-        }
-        .main {
-            background-color: #F1F3F6;
-        }
+        body { background-color: #F1F3F6; }
+        .main { background-color: #F1F3F6; }
+
         .title {
             font-size: 40px;
             font-weight: 900;
@@ -35,6 +32,7 @@ st.markdown("""
             text-align: center;
             margin-bottom: 15px;
         }
+
         .card {
             background: white;
             padding: 25px;
@@ -42,6 +40,7 @@ st.markdown("""
             box-shadow: 0px 6px 15px rgba(0,0,0,0.1);
             margin-bottom: 25px;
         }
+
         .prediction-box {
             background: linear-gradient(120deg, #1E88E5, #42A5F5);
             color: white;
@@ -54,7 +53,6 @@ st.markdown("""
         }
     </style>
 """, unsafe_allow_html=True)
-
 
 # -------------------------------------------------------------
 # LOAD MODEL AND SCALER
@@ -77,7 +75,7 @@ feature_info = {
     "Fruits": "Eats fruit daily.",
     "Veggies": "Eats vegetables daily.",
     "HvyAlcoholConsump": "Heavy alcohol consumption.",
-    "DiffWalk": "Difficulty walking or climbing stairs.",
+    "DiffWalk": "Difficulty walking.",
     "Sex": "Sex at birth.",
     "Age": (
         "Age Groups:\n"
@@ -93,7 +91,6 @@ feature_info = {
 # -------------------------------------------------------------
 st.sidebar.title("🔍 Navigation")
 page = st.sidebar.radio("Go to:", ["📏 BMI Calculator", "🧪 Diabetes Prediction"])
-
 
 # =============================================================
 # PAGE 1 — BMI CALCULATOR
@@ -120,7 +117,6 @@ if page == "📏 BMI Calculator":
 
     st.markdown("</div>", unsafe_allow_html=True)
 
-
 # =============================================================
 # PAGE 2 — DIABETES PREDICTION
 # =============================================================
@@ -128,7 +124,6 @@ if page == "🧪 Diabetes Prediction":
 
     st.markdown("<h1 class='title'>🧪 Diabetes Prediction</h1>", unsafe_allow_html=True)
 
-    # Helper function for Yes/No
     def yn(x): return 1 if x == "Yes" else 0
 
     st.markdown("<div class='card'>", unsafe_allow_html=True)
@@ -138,7 +133,7 @@ if page == "🧪 Diabetes Prediction":
     with left:
         HighBP = yn(st.selectbox("High Blood Pressure?", ["No", "Yes"], help=feature_info["HighBP"]))
         HighChol = yn(st.selectbox("High Cholesterol?", ["No", "Yes"], help=feature_info["HighChol"]))
-        CholCheck = yn(st.selectbox("Recent Cholesterol Check?", ["No", "Yes"], help=feature_info["CholCheck"]))
+        CholCheck = yn(st.selectbox("Cholesterol Check (5 Years)?", ["No", "Yes"], help=feature_info["CholCheck"]))
         BMI = st.number_input("BMI", 10.0, 80.0, 25.0, help=feature_info["BMI"])
         Smoker = yn(st.selectbox("Ever Smoked?", ["No", "Yes"], help=feature_info["Smoker"]))
         Stroke = yn(st.selectbox("Ever Had a Stroke?", ["No", "Yes"], help=feature_info["Stroke"]))
@@ -152,13 +147,13 @@ if page == "🧪 Diabetes Prediction":
         DiffWalk = yn(st.selectbox("Difficulty Walking?", ["No", "Yes"]))
         Sex = 1 if st.selectbox("Sex", ["Female", "Male"]) == "Male" else 0
         Age = st.slider("Age Group (1–13)", 1, 13, 8, help=feature_info["Age"])
-        GenHlth = st.slider("General Health (1–5)", 1, 5, 3)
+        GenHlth = st.slider("General Health (1–5)", 1, 5, 3, help=feature_info["GenHlth"])
 
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # ============================
-    # PREPARE DATAFRAME
-    # ============================
+    # -----------------------------
+    # BUILD DATAFRAME
+    # -----------------------------
     features = pd.DataFrame({
         "HighBP":[HighBP], "HighChol":[HighChol], "CholCheck":[CholCheck], "BMI":[BMI],
         "Smoker":[Smoker], "Stroke":[Stroke], "HeartDiseaseorAttack":[HeartDiseaseorAttack],
@@ -167,29 +162,40 @@ if page == "🧪 Diabetes Prediction":
         "Age":[Age], "GenHlth":[GenHlth]
     })
 
-    # Scale numeric columns
-    features[["BMI","Age","GenHlth"]] = scaler.transform(features[["BMI","Age","GenHlth"]])
+    # -----------------------------
+    # SCALE NUMERIC COLUMNS
+    # -----------------------------
+    features[["BMI", "Age", "GenHlth"]] = scaler.transform(features[["BMI", "Age", "GenHlth"]])
 
-    # ============================
-    # FIX COLUMN ORDER FOR XGBOOST
-    # ============================
-    expected_cols = [
-        "HighBP", "HighChol", "CholCheck", "BMI",
-        "Smoker", "Stroke", "HeartDiseaseorAttack",
-        "PhysActivity", "Fruits", "Veggies",
-        "HvyAlcoholConsump", "DiffWalk", "Sex",
-        "Age", "GenHlth"
-    ]
+    # ==========================================================
+    # FIX COLUMN ORDER TO MATCH MODEL (NO MORE MISMATCH ERRORS)
+    # ==========================================================
+    try:
+        model_cols = list(model.feature_names_in_)   # scikit-learn models
+    except:
+        try:
+            model_cols = list(model.get_booster().feature_names)   # XGBoost booster
+        except:
+            # LAST RESORT (your model’s correct order)
+            model_cols = [
+                "HighBP", "HighChol", "CholCheck", "BMI",
+                "Smoker", "Stroke", "HeartDiseaseorAttack",
+                "PhysActivity", "Fruits", "Veggies",
+                "HvyAlcoholConsump", "GenHlth", "DiffWalk",
+                "Sex", "Age"
+            ]
 
-    for col in expected_cols:
+    # add missing cols
+    for col in model_cols:
         if col not in features.columns:
             features[col] = 0
 
-    features = features[expected_cols]
+    # reorder exactly
+    features = features[model_cols]
 
-    # ============================
+    # ==========================================================
     # PREDICT
-    # ============================
+    # ==========================================================
     if st.button("Predict Diabetes Status"):
         pred = model.predict(features)[0]
         proba = model.predict_proba(features)[0]
@@ -205,18 +211,17 @@ if page == "🧪 Diabetes Prediction":
             unsafe_allow_html=True
         )
 
-        # Probability chart
+        # Probability Bar Chart
         fig = px.bar(
             x=list(label_map.values()),
             y=proba,
             labels={"x": "Class", "y": "Probability"},
             title="Prediction Probability",
-            color=list(label_map.values()),
             range_y=[0, 1]
         )
         st.plotly_chart(fig, use_container_width=True)
 
-        # Gauge for diabetes probability
+        # Gauge Chart
         risk = proba[2] * 100
         gauge = go.Figure(go.Indicator(
             mode="gauge+number",
