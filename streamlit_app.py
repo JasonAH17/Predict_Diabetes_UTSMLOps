@@ -47,11 +47,26 @@ feature_info = {
     "PhysActivity": "Physical activity in the past 30 days (not including job). 0 = No, 1 = Yes",
     "Fruits": "Consumes fruit 1 or more times per day. 0 = No, 1 = Yes",
     "Veggies": "Consumes vegetables 1 or more times per day. 0 = No, 1 = Yes",
-    "HvyAlcoholConsump": "Heavy alcohol use: >14 drinks/week (men), >7 (women). 0 = No, 1 = Yes",
+    "HvyAlcoholConsump": "Heavy drinking: >14 drinks/week (men), >7 drinks/week (women). 0 = No, 1 = Yes",
     "DiffWalk": "Difficulty walking or climbing stairs. 0 = No, 1 = Yes",
     "Sex": "0 = Female, 1 = Male",
-    "Age": "Age category: 1=18-24 … 13=80+",
-    "GenHlth": "General health: 1=Excellent → 5=Poor"
+    "Age": (
+        "Age category based on BRFSS:\n"
+        "1 = 18–24\n"
+        "2 = 25–29\n"
+        "3 = 30–34\n"
+        "4 = 35–39\n"
+        "5 = 40–44\n"
+        "6 = 45–49\n"
+        "7 = 50–54\n"
+        "8 = 55–59\n"
+        "9 = 60–64\n"
+        "10 = 65–69\n"
+        "11 = 70–74\n"
+        "12 = 75–79\n"
+        "13 = 80+"
+    ),
+    "GenHlth": "General health rating: 1 = Excellent → 5 = Poor"
 }
 
 # ---------------------------
