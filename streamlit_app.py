@@ -33,12 +33,35 @@ st.markdown(
 st.title("🩺 Diabetes Prediction (BRFSS2015)")
 st.write("Provide health indicators below and the model will predict diabetes classification.")
 
+# ---------------------------
+# Feature Descriptions
+# ---------------------------
+feature_info = {
+    "HighBP": "High blood pressure. 0 = No, 1 = Yes",
+    "HighChol": "High cholesterol level. 0 = No, 1 = Yes",
+    "CholCheck": "Had cholesterol check within the past 5 years. 0 = No, 1 = Yes",
+    "BMI": "Body Mass Index (normal: 18.5–24.9). You may use the BMI calculator above.",
+    "Smoker": "Smoked at least 100 cigarettes in lifetime. 0 = No, 1 = Yes",
+    "Stroke": "Ever told by a doctor you had a stroke. 0 = No, 1 = Yes",
+    "HeartDiseaseorAttack": "Coronary heart disease or heart attack. 0 = No, 1 = Yes",
+    "PhysActivity": "Physical activity in the past 30 days (not including job). 0 = No, 1 = Yes",
+    "Fruits": "Consumes fruit 1 or more times per day. 0 = No, 1 = Yes",
+    "Veggies": "Consumes vegetables 1 or more times per day. 0 = No, 1 = Yes",
+    "HvyAlcoholConsump": "Heavy alcohol use: >14 drinks/week (men), >7 (women). 0 = No, 1 = Yes",
+    "DiffWalk": "Difficulty walking or climbing stairs. 0 = No, 1 = Yes",
+    "Sex": "0 = Female, 1 = Male",
+    "Age": "Age category: 1=18-24 … 13=80+",
+    "GenHlth": "General health: 1=Excellent → 5=Poor"
+}
+
+# ---------------------------
 # Load model & scaler
+# ---------------------------
 model = joblib.load('xgb_best_model.pkl')
 scaler = joblib.load('scaler.pkl')
 
 # ---------------------------
-# BMI Calculator (New Feature)
+# BMI Calculator (Optional)
 # ---------------------------
 st.subheader("📏 BMI Calculator (Optional)")
 
@@ -63,23 +86,23 @@ st.subheader("🧍 Patient Health Inputs")
 left, right = st.columns(2)
 
 with left:
-    HighBP = st.selectbox('HighBP (0=no, 1=yes)', [0, 1])
-    HighChol = st.selectbox('HighChol (0=no, 1=yes)', [0, 1])
-    CholCheck = st.selectbox('CholCheck (0=no, 1=yes)', [0, 1])
-    BMI = st.number_input('BMI (if unsure, use the calculator above)', 10.0, 80.0, float(round(bmi_calc, 2)))
-    Smoker = st.selectbox('Smoker (0=no,1=yes)', [0, 1])
-    Stroke = st.selectbox('Stroke (0=no,1=yes)', [0, 1])
+    HighBP = st.selectbox('HighBP (0=no,1=yes)', [0,1], help=feature_info["HighBP"])
+    HighChol = st.selectbox('HighChol (0=no,1=yes)', [0,1], help=feature_info["HighChol"])
+    CholCheck = st.selectbox('CholCheck (0=no,1=yes)', [0,1], help=feature_info["CholCheck"])
+    BMI = st.number_input('BMI', 10.0, 80.0, float(round(bmi_calc, 2)), help=feature_info["BMI"])
+    Smoker = st.selectbox('Smoker (0=no,1=yes)', [0,1], help=feature_info["Smoker"])
+    Stroke = st.selectbox('Stroke (0=no,1=yes)', [0,1], help=feature_info["Stroke"])
 
 with right:
-    HeartDiseaseorAttack = st.selectbox('HeartDiseaseorAttack', [0, 1])
-    PhysActivity = st.selectbox('PhysActivity', [0, 1])
-    Fruits = st.selectbox('Fruits', [0, 1])
-    Veggies = st.selectbox('Veggies', [0, 1])
-    HvyAlcoholConsump = st.selectbox('HvyAlcoholConsump', [0, 1])
-    DiffWalk = st.selectbox('Difficulty Walking', [0, 1])
-    Sex = st.selectbox('Sex', [0, 1])
-    Age = st.slider('Age Category (1–13)', 1, 13, 8)
-    GenHlth = st.slider('General Health (1=excellent → 5=poor)', 1, 5, 3)
+    HeartDiseaseorAttack = st.selectbox('HeartDiseaseorAttack', [0,1], help=feature_info["HeartDiseaseorAttack"])
+    PhysActivity = st.selectbox('PhysActivity', [0,1], help=feature_info["PhysActivity"])
+    Fruits = st.selectbox('Fruits', [0,1], help=feature_info["Fruits"])
+    Veggies = st.selectbox('Veggies', [0,1], help=feature_info["Veggies"])
+    HvyAlcoholConsump = st.selectbox('HvyAlcoholConsump', [0,1], help=feature_info["HvyAlcoholConsump"])
+    DiffWalk = st.selectbox('Difficulty Walking', [0,1], help=feature_info["DiffWalk"])
+    Sex = st.selectbox('Sex', [0,1], help=feature_info["Sex"])
+    Age = st.slider('Age Category (1–13)', 1, 13, 8, help=feature_info["Age"])
+    GenHlth = st.slider('General Health (1=excellent → 5=poor)', 1, 5, 3, help=feature_info["GenHlth"])
 
 # Prepare DataFrame
 features = pd.DataFrame({
@@ -101,7 +124,7 @@ features = pd.DataFrame({
 })
 
 # Scale numeric columns
-num_cols = ['BMI', 'Age', 'GenHlth']
+num_cols = ['BMI','Age','GenHlth']
 features[num_cols] = scaler.transform(features[num_cols])
 
 # ---------------------------
@@ -121,28 +144,23 @@ if st.button("Predict Diabetes Status"):
 
     st.success(f"### 🧾 Prediction: **{label_map[pred]}**")
 
-    # ---------------------------
     # Probability Bar Chart
-    # ---------------------------
     proba_fig = px.bar(
         x=[label_map[i] for i in range(3)],
         y=proba,
         title="Probability Distribution",
         labels={'x':'Class', 'y':'Probability'},
         range_y=[0, 1],
-        color=[0,1,2]
     )
     st.plotly_chart(proba_fig, use_container_width=True)
 
-    # ---------------------------
-    # Gauge for Diabetes Risk
-    # ---------------------------
-    gauge_value = (proba[2] * 100)
+    # Gauge Chart
+    gauge_value = proba[2] * 100
     gauge = go.Figure(go.Indicator(
         mode="gauge+number",
         value=gauge_value,
         title={'text': "Diabetes Risk (%)"},
         gauge={'axis': {'range': [0, 100]}}
     ))
-
     st.plotly_chart(gauge, use_container_width=True)
+
